@@ -1,0 +1,66 @@
+name: Build and verify
+on:
+  push:
+  pull_request:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Frontend build and tests
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+          npm test
+          npx playwright install --with-deps chromium
+      - name: API build and tests
+        run: dotnet test backend/Spamira.slnx --configuration Release
+      - name: Train and test model
+        working-directory: ml-service
+        run: |
+          pip install -r requirements.lock
+          python -m training.download_data
+          python -m training.train
+          python -m pytest -q
+      - name: Start complete deployment
+        env:
+          POSTGRES_PASSWORD: ci-temporary-database-password
+        run: docker compose up --build --wait --wait-timeout 300
+      - name: API smoke test
+        run: python scripts/smoke_test.py
+      - name: Browser end-to-end tests
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: http://localhost:3000
+        run: npm run test:e2e
+      - name: Verify persistence after restart
+        env:
+          POSTGRES_PASSWORD: ci-temporary-database-password
+        run: |
+          BEFORE=$(curl -fsS http://localhost:5080/api/dashboard/stats | python -c 'import json,sys; print(json.load(sys.stdin)["totalAnalyzed"])')
+          docker compose restart postgres backend
+          docker compose up --wait --wait-timeout 120
+          AFTER=$(curl -fsS http://localhost:5080/api/dashboard/stats | python -c 'import json,sys; print(json.load(sys.stdin)["totalAnalyzed"])')
+          test "$BEFORE" = "$AFTER"
+      - name: Deployment logs
+        if: failure()
+        env:
+          POSTGRES_PASSWORD: ci-temporary-database-password
+        run: docker compose logs --tail 100
+      - name: Stop deployment
+        if: always()
+        env:
+          POSTGRES_PASSWORD: ci-temporary-database-password
+        run: docker compose down -v

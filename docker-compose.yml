@@ -1,0 +1,63 @@
+name: spamira
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-spamira}
+      POSTGRES_USER: ${POSTGRES_USER:-spamira}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  ml-service:
+    build:
+      context: .
+      dockerfile: ml-service/Dockerfile
+    ports:
+      - "127.0.0.1:${ML_PORT:-8000}:8000"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-spamira};Username=${POSTGRES_USER:-spamira};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env};Timeout=5;Command Timeout=10"
+      MlService__BaseUrl: http://ml-service:8000
+      Database__AutoMigrate: "true"
+      Cors__AllowedOrigins__0: "http://localhost:${FRONTEND_PORT:-3000}"
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-5080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    environment:
+      BACKEND_UPSTREAM: http://backend:8080
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
