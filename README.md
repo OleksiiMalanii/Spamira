@@ -234,7 +234,7 @@ Classification probabilities are model estimates, not guarantees. English SMS is
 
 Read [architecture and operational behavior](docs/architecture.md) for configuration boundaries, timeouts, health checks, and persistence details.
 
-See [verification results](docs/verification.md) for completed checks and outstanding environment-specific validation.
+See [verification results](docs/verification.md) for completed local and container deployment checks.
 
 ## Dataset attribution
 

@@ -16,9 +16,14 @@ The application has been exercised locally against the trained model, ASP.NET Co
 | Migration application on a fresh PostgreSQL database | Passed |
 | History retained after PostgreSQL and API restart | Passed; all 14 existing records retained |
 | Docker Compose configuration validation | Passed |
+| Container image builds and complete Compose startup | Passed on Linux CI |
+| Smoke test and browser tests against Docker deployment | Passed |
+| Docker database and API restart persistence | Passed |
 
 The smoke test checks real spam and legitimate predictions, both probabilities, exact equality between the creation response and persisted record, search, filtering, dashboard totals, model metrics, and invalid input rejection. Browser tests use live services and cover the analyzer, history, metrics, dashboard, and information page.
 
-Container image builds and a full Compose deployment still require verification on a host with a running container engine. The current Windows host requires a restart after enabling Virtual Machine Platform and reports unavailable firmware virtualization. The included CI workflow performs the container-level checks on Linux.
+The complete [GitHub Actions verification run](https://github.com/OleksiiMalanii/Spamira/actions/runs/34350598441) passed for application commit `1cdbaf7`. It built all images, started the complete Compose stack on Linux, ran real API and browser checks, and confirmed unchanged message counts after restarting PostgreSQL and the API.
+
+The local Windows host requires a restart after enabling Virtual Machine Platform and reports unavailable firmware virtualization. Docker Desktop and WSL are installed. The application was additionally verified using local processes and PostgreSQL before that restart.
 
 Run the commands in the README to reproduce the checks. Test counts and the reference model metrics describe this revision.
