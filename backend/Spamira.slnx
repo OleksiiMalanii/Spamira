@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Spamira.Api.Tests/Spamira.Api.Tests.csproj" />
+  <Project Path="Spamira.Api/Spamira.Api.csproj" />
+</Solution>
