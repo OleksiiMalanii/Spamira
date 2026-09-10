@@ -39,19 +39,21 @@ jobs:
           POSTGRES_PASSWORD: ci-temporary-database-password
         run: docker compose up --build --wait --wait-timeout 300
       - name: API smoke test
-        run: python scripts/smoke_test.py --state-file /tmp/spamira-smoke
+        run: python scripts/smoke_test.py --base-url http://localhost:3000 --state-file /tmp/spamira-smoke
       - name: Browser end-to-end tests
         working-directory: frontend
         env:
           E2E_BASE_URL: http://localhost:3000
         run: npm run test:e2e
+      - name: Concurrent guest allowance
+        run: python scripts/verify_guest_quota.py
       - name: Verify persistence after restart
         env:
           POSTGRES_PASSWORD: ci-temporary-database-password
         run: |
           docker compose restart postgres backend
           docker compose up --wait --wait-timeout 120
-          python scripts/smoke_test.py --state-file /tmp/spamira-smoke --verify-state
+          python scripts/smoke_test.py --base-url http://localhost:3000 --state-file /tmp/spamira-smoke --verify-state
       - name: Deployment logs
         if: failure()
         env:

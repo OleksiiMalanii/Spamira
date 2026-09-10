@@ -11,7 +11,9 @@ server {
 
     location = /healthz { access_log off; return 200 'healthy'; add_header Content-Type text/plain; }
     location /api/ {
-        proxy_pass ${BACKEND_UPSTREAM};
+        resolver 127.0.0.11 valid=5s ipv6=off;
+        set $backend_upstream "${BACKEND_UPSTREAM}";
+        proxy_pass $backend_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $remote_addr;

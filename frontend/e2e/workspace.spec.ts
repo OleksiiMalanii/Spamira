@@ -24,6 +24,7 @@ test('account registration, private history, logout and sign-in', async ({ page 
   await page.getByLabel('Filter by classification').selectOption('legitimate');
   await expect(page.getByRole('cell', { name: 'Legitimate', exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Sign in to Spamira' })).toBeVisible();
   await page.goto('/history');
   await expect(page.getByRole('heading', { name: 'Sign in to Spamira' })).toBeVisible();
   await page.getByLabel('Email address').fill(email);
