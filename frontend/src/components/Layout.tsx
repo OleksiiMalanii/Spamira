@@ -10,9 +10,12 @@ import {
   ScanText,
   ShieldCheck,
   X,
+  LogOut,
 } from 'lucide-react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../lib/auth';
+import { ErrorNotice } from './Common';
 
 const navigation = [
   { to: '/', label: 'Overview', icon: LayoutDashboard },
@@ -24,8 +27,37 @@ const navigation = [
 
 export function Layout() {
   const [open, setOpen] = useState(false);
+  const auth = useAuth();
+  const [logoutError, setLogoutError] = useState('');
+  const [signingOut, setSigningOut] = useState(false);
+  useEffect(() => {
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', escape);
+    return () => window.removeEventListener('keydown', escape);
+  }, []);
+  async function logout() {
+    setSigningOut(true);
+    setLogoutError('');
+    try {
+      await auth.logout();
+    } catch (error) {
+      setLogoutError(
+        error instanceof Error ? error.message : 'Unable to sign out. Please try again.',
+      );
+    } finally {
+      setSigningOut(false);
+    }
+  }
   const { pathname } = useLocation();
-  const current = navigation.find((item) => item.to === pathname)?.label || 'Page not found';
+  const current =
+    navigation.find((item) => item.to === pathname)?.label ||
+    (pathname === '/login'
+      ? 'Sign in'
+      : pathname === '/register'
+        ? 'Create account'
+        : 'Page not found');
   return (
     <div className="app-shell">
       {open && (
@@ -35,7 +67,7 @@ export function Layout() {
           onClick={() => setOpen(false)}
         />
       )}
-      <aside className={`sidebar ${open ? 'open' : ''}`}>
+      <aside id="workspace-navigation" className={`sidebar ${open ? 'open' : ''}`}>
         <NavLink to="/" className="brand" onClick={() => setOpen(false)}>
           <span className="brand-symbol">
             <ShieldCheck size={25} />
@@ -45,8 +77,10 @@ export function Layout() {
         <div className="workspace">
           <span className="workspace-avatar">S</span>
           <div>
-            <strong>Spamira workspace</strong>
-            <small>Message intelligence</small>
+            <strong title={auth.user?.displayName}>
+              {auth.user?.displayName || 'Guest workspace'}
+            </strong>
+            <small>{auth.user ? 'Your private workspace' : '10 free analyses daily'}</small>
           </div>
           <ChevronRight size={15} />
         </div>
@@ -86,6 +120,8 @@ export function Layout() {
             <button
               className="icon-button mobile-menu"
               aria-label={open ? 'Close menu' : 'Open menu'}
+              aria-expanded={open}
+              aria-controls="workspace-navigation"
               onClick={() => setOpen(!open)}
             >
               {open ? <X size={21} /> : <Menu size={21} />}
@@ -95,14 +131,41 @@ export function Layout() {
             <strong>{current}</strong>
           </div>
           <div className="topbar-right">
-            <span className="workspace-tag">SMS CLASSIFICATION</span>
-            <div className="profile-avatar" aria-label="Spamira workspace">
-              S
-            </div>
+            {auth.user ? (
+              <>
+                <span className="workspace-tag">PRIVATE WORKSPACE</span>
+                <div
+                  className="profile-avatar"
+                  title={auth.user.displayName}
+                  aria-label={auth.user.displayName}
+                >
+                  {auth.user.displayName.slice(0, 1).toUpperCase()}
+                </div>
+                <button
+                  className="sign-out-button"
+                  onClick={() => void logout()}
+                  disabled={signingOut}
+                  aria-label="Sign out"
+                >
+                  <LogOut size={16} />
+                  <span>{signingOut ? 'Signing out…' : 'Sign out'}</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="header-sign-in">
+                  Sign in
+                </Link>
+                <Link to="/register" className="button primary header-register">
+                  Create account
+                </Link>
+              </>
+            )}
           </div>
         </header>
         <main id="main-content">
-          <Outlet />
+          {logoutError && <ErrorNotice message={logoutError} />}
+          <Outlet key={auth.user?.id || 'guest'} />
         </main>
         <footer className="page-footer">
           <span>Spamira. Clarity in every message.</span>

@@ -39,7 +39,7 @@ jobs:
           POSTGRES_PASSWORD: ci-temporary-database-password
         run: docker compose up --build --wait --wait-timeout 300
       - name: API smoke test
-        run: python scripts/smoke_test.py
+        run: python scripts/smoke_test.py --state-file /tmp/spamira-smoke
       - name: Browser end-to-end tests
         working-directory: frontend
         env:
@@ -49,11 +49,9 @@ jobs:
         env:
           POSTGRES_PASSWORD: ci-temporary-database-password
         run: |
-          BEFORE=$(curl -fsS http://localhost:5080/api/dashboard/stats | python -c 'import json,sys; print(json.load(sys.stdin)["totalAnalyzed"])')
           docker compose restart postgres backend
           docker compose up --wait --wait-timeout 120
-          AFTER=$(curl -fsS http://localhost:5080/api/dashboard/stats | python -c 'import json,sys; print(json.load(sys.stdin)["totalAnalyzed"])')
-          test "$BEFORE" = "$AFTER"
+          python scripts/smoke_test.py --state-file /tmp/spamira-smoke --verify-state
       - name: Deployment logs
         if: failure()
         env:

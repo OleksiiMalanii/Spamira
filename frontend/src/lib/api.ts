@@ -12,6 +12,7 @@ export const classificationSchema = z
     createdAt: z.string().datetime({ offset: true }),
     processingTimeMs: z.number().nonnegative(),
     modelVersion: z.string(),
+    savedToHistory: z.boolean(),
   })
   .refine((r) => Math.abs(r.spamProbability + r.legitimateProbability - 1) < 0.00001);
 export type Classification = z.infer<typeof classificationSchema>;
@@ -55,13 +56,31 @@ export async function request<T>(
   const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
   let response: Response;
   try {
+    let csrfHeaders: Record<string, string> = {};
+    if (options.method && !['GET', 'HEAD', 'OPTIONS'].includes(options.method.toUpperCase())) {
+      const csrfResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/auth/csrf`, {
+        credentials: 'include',
+        cache: 'no-store',
+        signal,
+      });
+      const csrf = z
+        .object({ token: z.string() })
+        .safeParse(await csrfResponse.json().catch(() => null));
+      if (!csrfResponse.ok || !csrf.success)
+        throw new Error('The service returned an unexpected response. Please try again.');
+      csrfHeaders = { 'X-CSRF-TOKEN': csrf.data.token };
+    }
     response = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}${path}`, {
       ...options,
-      headers: { 'Content-Type': 'application/json', ...options.headers },
+      credentials: 'include',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json', ...csrfHeaders, ...options.headers },
       signal,
     });
   } catch (error) {
     if (options.signal?.aborted) throw error;
+    if (error instanceof Error && !(error instanceof TypeError) && error.name !== 'TimeoutError')
+      throw error;
     throw new Error(
       timeout.aborted
         ? 'The request took too long. Please try again.'
@@ -69,11 +88,15 @@ export async function request<T>(
     );
   }
   if (!response.ok) {
+    if (response.status === 401 && !path.startsWith('/auth/'))
+      window.dispatchEvent(new Event('spamira:session-expired'));
     const body = await response.json().catch(() => null);
     throw new Error(
       typeof body?.detail === 'string'
         ? body.detail
-        : 'This request could not be completed. Please try again.',
+        : response.status === 401
+          ? 'Sign in to access your private workspace.'
+          : 'This request could not be completed. Please try again.',
     );
   }
   const result = schema.safeParse(await response.json().catch(() => null));

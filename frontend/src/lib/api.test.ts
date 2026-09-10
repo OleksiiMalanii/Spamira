@@ -4,7 +4,10 @@ afterEach(() => vi.unstubAllGlobals());
 it('rejects invalid response contracts', async () => {
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockResolvedValue(new Response(JSON.stringify({ label: 'spam' }), { status: 200 })),
+    vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ token: 'test-csrf' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ label: 'spam' }), { status: 200 })),
   );
   await expect(analyze('hello')).rejects.toThrow('unexpected response');
 });
@@ -17,6 +20,7 @@ it('surfaces structured API errors', async () => {
     'fetch',
     vi
       .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ token: 'test-csrf' })))
       .mockResolvedValue(
         new Response(JSON.stringify({ detail: 'Please try again later.' }), { status: 503 }),
       ),

@@ -77,9 +77,9 @@ export function About() {
         <div>
           <h2>Your workspace, your history.</h2>
           <p>
-            Messages and results are stored in your deployment’s PostgreSQL database. This workspace
-            is shared and has no sign-in. Deploy it within a trusted network or place access
-            controls in front of it before sharing sensitive information.
+            Signed-in analyses are saved in your private workspace. Only your account can read its
+            history and statistics. Guests receive 10 analyses per day without saved history;
+            creating a free account removes that daily guest allowance.
           </p>
           <a
             href="https://archive.ics.uci.edu/dataset/228/sms+spam+collection"

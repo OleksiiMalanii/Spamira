@@ -14,14 +14,18 @@ import { Link } from 'react-router-dom';
 import { analyze, dateTime, percent } from '../lib/api';
 import type { Classification } from '../lib/api';
 import { ErrorNotice } from '../components/Common';
+import { useAuth } from '../lib/auth';
 
 export function Analyzer() {
+  const auth = useAuth();
+  const exhausted = !auth.user && auth.quota?.remaining === 0;
   const [text, setText] = useState('');
   const [result, setResult] = useState<Classification>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (exhausted) return;
     if (!text.trim()) {
       setError('Please enter a message to analyze.');
       return;
@@ -39,6 +43,7 @@ export function Analyzer() {
       setError(reason instanceof Error ? reason.message : 'Please try again.');
     } finally {
       setLoading(false);
+      void auth.refresh();
     }
   }
   function changeText(value: string) {
@@ -59,6 +64,26 @@ export function Analyzer() {
           <ScanText size={15} /> Text classification
         </span>
       </div>
+      {!auth.user && (
+        <div className={`quota-banner ${exhausted ? 'quota-exhausted' : ''}`} role="status">
+          <div>
+            <strong>
+              {exhausted
+                ? 'Your daily guest allowance is used up.'
+                : `${auth.quota?.remaining ?? '—'} of 10 free analyses left today`}
+            </strong>
+            <p>
+              Guest results aren’t saved. The allowance resets at 00:00 UTC and is shared on the
+              same network.
+            </p>
+          </div>
+          <Link to="/register" className="button secondary">
+            {exhausted ? 'Create account to continue' : 'Unlock your free account'}{' '}
+            <ArrowRight size={15} />
+          </Link>
+        </div>
+      )}
+      {auth.error && <ErrorNotice message={auth.error} retry={() => void auth.refresh()} />}
       <div className="analyzer-grid">
         <section className="card input-card">
           <div className="section-heading">
@@ -114,7 +139,10 @@ export function Analyzer() {
               >
                 Clear message
               </button>
-              <button className="button primary" disabled={loading}>
+              <button
+                className="button primary"
+                disabled={loading || exhausted || auth.loading || Boolean(auth.error)}
+              >
                 {loading ? <LoaderCircle size={17} className="spin" /> : <ScanText size={17} />}
                 {loading ? 'Analyzing…' : 'Analyze message'}
               </button>
@@ -123,8 +151,9 @@ export function Analyzer() {
           <div className="privacy-note">
             <Info size={15} />
             <span>
-              Analyzed messages are saved to your workspace history. Avoid submitting sensitive
-              personal information.
+              {auth.user
+                ? 'Analyzed messages are saved to your private history. Avoid submitting sensitive personal information.'
+                : 'Guest messages are processed without being saved. Sign in to keep a private analysis history.'}
             </span>
           </div>
         </section>
@@ -175,10 +204,16 @@ export function Analyzer() {
                 <Clock3 size={14} />
                 <time dateTime={result.createdAt}>{dateTime(result.createdAt)}</time>
               </div>
-              <Link className="saved-link" to="/history">
-                <Check size={14} />
-                Saved to classification history <ArrowRight size={14} />
-              </Link>
+              {result.savedToHistory ? (
+                <Link className="saved-link" to="/history">
+                  <Check size={14} />
+                  Saved to classification history <ArrowRight size={14} />
+                </Link>
+              ) : (
+                <Link className="saved-link" to="/register">
+                  Guest result · not saved. Create an account <ArrowRight size={14} />
+                </Link>
+              )}
             </>
           ) : (
             <div className="result-empty">

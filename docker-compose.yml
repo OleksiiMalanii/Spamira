@@ -34,9 +34,14 @@ services:
       ConnectionStrings__Default: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-spamira};Username=${POSTGRES_USER:-spamira};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env};Timeout=5;Command Timeout=10"
       MlService__BaseUrl: http://ml-service:8000
       Database__AutoMigrate: "true"
+      Auth__DataProtectionPath: /app/keys
+      Auth__SecureCookies: ${AUTH_SECURE_COOKIES:-false}
+      ReverseProxy__KnownProxies__0: ${FRONTEND_INTERNAL_IP:-172.30.250.10}
       Cors__AllowedOrigins__0: "http://localhost:${FRONTEND_PORT:-3000}"
     ports:
       - "127.0.0.1:${BACKEND_PORT:-5080}:8080"
+    volumes:
+      - auth-keys:/app/keys
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,6 +57,9 @@ services:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     environment:
       BACKEND_UPSTREAM: http://backend:8080
+    networks:
+      default:
+        ipv4_address: ${FRONTEND_INTERNAL_IP:-172.30.250.10}
     ports:
       - "127.0.0.1:${FRONTEND_PORT:-3000}:8080"
     depends_on:
@@ -61,3 +69,10 @@ services:
 
 volumes:
   postgres-data:
+  auth-keys:
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${NETWORK_SUBNET:-172.30.250.0/24}

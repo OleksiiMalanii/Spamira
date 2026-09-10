@@ -31,6 +31,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection connection = new("Data Source=:memory:");
     public TestMl Ml { get; } = new();
+    public TestClock Clock { get; } = new();
+    public string MemberEmail { get; } = $"member-{Guid.NewGuid():N}@example.com";
+    public const string TestPassword = "TestingPassword123";
     public ApiFactory() => connection.Open();
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -44,16 +47,25 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             services.AddDbContext<SpamiraDbContext>(options => options.UseSqlite(connection));
             services.RemoveAll<IMlClient>();
             services.AddSingleton<IMlClient>(Ml);
+            services.AddSingleton<TimeProvider>(Clock);
         });
     }
-    public HttpClient ReadyClient()
+    public async Task<HttpClient> ReadyClientAsync(bool authenticated = true)
     {
         var client = CreateClient();
         using var scope = Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<SpamiraDbContext>().Database.EnsureCreated();
+        await scope.ServiceProvider.GetRequiredService<SpamiraDbContext>().Database.EnsureCreatedAsync();
+        if (authenticated)
+            (await client.PostWithCsrfAsync("/api/auth/register", new { displayName = "Test member", email = MemberEmail, password = TestPassword })).EnsureSuccessStatusCode();
         return client;
     }
     protected override void Dispose(bool disposing) { base.Dispose(disposing); if (disposing) connection.Dispose(); }
+}
+
+public sealed class TestClock : TimeProvider
+{
+    public DateTimeOffset Now { get; set; } = new(2026, 9, 9, 23, 59, 0, TimeSpan.Zero);
+    public override DateTimeOffset GetUtcNow() => Now;
 }
 
 public class ApiTests
@@ -62,8 +74,8 @@ public class ApiTests
     public async Task ClassificationIsPersistedAndQueryableAcrossRequests()
     {
         using var factory = new ApiFactory();
-        using var client = factory.ReadyClient();
-        var response = await client.PostAsJsonAsync("/api/classifications", new { message = "  Claim your prize  " });
+        using var client = await factory.ReadyClientAsync();
+        var response = await client.PostWithCsrfAsync("/api/classifications", new { message = "  Claim your prize  " });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var item = (await response.Content.ReadFromJsonAsync<ClassificationResponse>())!;
         Assert.Equal("Claim your prize", item.Message);
@@ -71,6 +83,7 @@ public class ApiTests
         Assert.Equal(0, item.CreatedAt.Ticks % 10);
         Assert.Equal(1, item.SpamProbability + item.LegitimateProbability);
         using var secondClient = factory.CreateClient();
+        (await secondClient.PostWithCsrfAsync("/api/auth/login", new { email = factory.MemberEmail, password = ApiFactory.TestPassword })).EnsureSuccessStatusCode();
         var saved = await secondClient.GetFromJsonAsync<ClassificationResponse>($"/api/classifications/{item.Id}");
         Assert.Equal(item, saved);
         var page = (await client.GetFromJsonAsync<PageResponse<ClassificationResponse>>("/api/classifications?label=spam&search=PRIZE&pageSize=1"))!;
@@ -87,15 +100,15 @@ public class ApiTests
     [InlineData(null)]
     public async Task BlankMessageRejected(string? message)
     {
-        using var factory = new ApiFactory(); using var client = factory.ReadyClient();
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/classifications", new { message })).StatusCode);
+        using var factory = new ApiFactory(); using var client = await factory.ReadyClientAsync();
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostWithCsrfAsync("/api/classifications", new { message })).StatusCode);
     }
 
     [Fact]
     public async Task LongMessageRejected()
     {
-        using var factory = new ApiFactory(); using var client = factory.ReadyClient();
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/classifications", new { message = new string('x', 5001) })).StatusCode);
+        using var factory = new ApiFactory(); using var client = await factory.ReadyClientAsync();
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostWithCsrfAsync("/api/classifications", new { message = new string('x', 5001) })).StatusCode);
     }
 
     [Theory]
@@ -106,16 +119,16 @@ public class ApiTests
     [InlineData("page=abc")]
     public async Task InvalidQueryRejected(string query)
     {
-        using var factory = new ApiFactory(); using var client = factory.ReadyClient();
+        using var factory = new ApiFactory(); using var client = await factory.ReadyClientAsync();
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"/api/classifications?{query}")).StatusCode);
     }
 
     [Fact]
     public async Task PaginationFiltersAndDateSortingWork()
     {
-        using var factory = new ApiFactory(); using var client = factory.ReadyClient();
-        await client.PostAsJsonAsync("/api/classifications", new { message = "prize first" });
-        await client.PostAsJsonAsync("/api/classifications", new { message = "hello second" });
+        using var factory = new ApiFactory(); using var client = await factory.ReadyClientAsync();
+        await client.PostWithCsrfAsync("/api/classifications", new { message = "prize first" });
+        await client.PostWithCsrfAsync("/api/classifications", new { message = "hello second" });
         var oldest = (await client.GetFromJsonAsync<PageResponse<ClassificationResponse>>("/api/classifications?pageSize=1&sort=asc"))!;
         Assert.Equal("prize first", oldest.Items[0].Message);
         Assert.Equal(2, oldest.TotalPages);
@@ -130,9 +143,9 @@ public class ApiTests
     [Fact]
     public async Task MlFailureReturnsFriendlyErrorWithoutSaving()
     {
-        using var factory = new ApiFactory(); using var client = factory.ReadyClient();
+        using var factory = new ApiFactory(); using var client = await factory.ReadyClientAsync();
         factory.Ml.Unavailable = true;
-        var response = await client.PostAsJsonAsync("/api/classifications", new { message = "hello" });
+        var response = await client.PostWithCsrfAsync("/api/classifications", new { message = "hello" });
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.DoesNotContain("stack", await response.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
         var history = (await client.GetFromJsonAsync<PageResponse<ClassificationResponse>>("/api/classifications"))!;
@@ -143,7 +156,7 @@ public class ApiTests
     [Fact]
     public async Task MissingDatabaseTableReturnsServiceUnavailable()
     {
-        using var factory = new ApiFactory(); using var client = factory.ReadyClient();
+        using var factory = new ApiFactory(); using var client = await factory.ReadyClientAsync();
         using var scope = factory.Services.CreateScope();
         await scope.ServiceProvider.GetRequiredService<SpamiraDbContext>().Database.ExecuteSqlRawAsync("DROP TABLE ClassificationResults");
         var response = await client.GetAsync("/api/classifications");
@@ -154,7 +167,7 @@ public class ApiTests
     [Fact]
     public async Task HealthMetricsOpenApiAndMissingId()
     {
-        using var factory = new ApiFactory(); using var client = factory.ReadyClient();
+        using var factory = new ApiFactory(); using var client = await factory.ReadyClientAsync();
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/model/metrics")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/openapi/v1.json")).StatusCode);

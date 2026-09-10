@@ -9,6 +9,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+RUN mkdir -p /app/keys && chown $APP_UID:$APP_UID /app/keys
 COPY --from=build /app/publish .
 ENV ASPNETCORE_HTTP_PORTS=8080
 USER $APP_UID

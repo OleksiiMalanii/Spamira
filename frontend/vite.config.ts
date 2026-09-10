@@ -7,7 +7,11 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       proxy: {
-        '/api': { target: env.API_PROXY_TARGET || 'http://localhost:5080', changeOrigin: true },
+        '/api': {
+          target: env.API_PROXY_TARGET || 'http://localhost:5080',
+          changeOrigin: true,
+          xfwd: true,
+        },
       },
     },
   };

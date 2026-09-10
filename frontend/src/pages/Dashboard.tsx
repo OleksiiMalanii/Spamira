@@ -12,8 +12,17 @@ import { Link } from 'react-router-dom';
 import { dashboardSchema } from '../lib/api';
 import { useResource } from '../lib/useResource';
 import { Empty, ErrorNotice, Loading, MessageTable } from '../components/Common';
+import { useAuth } from '../lib/auth';
+import { GuestOverview } from './GuestOverview';
 
 export function Dashboard() {
+  const { user, loading, error, refresh } = useAuth();
+  if (loading) return <Loading />;
+  if (error) return <ErrorNotice message={error} retry={() => void refresh()} />;
+  return user ? <PersonalDashboard key={user.id} /> : <GuestOverview />;
+}
+
+function PersonalDashboard() {
   const { data, error, loading, refresh } = useResource('/dashboard/stats', dashboardSchema);
   return (
     <>

@@ -2,6 +2,7 @@ using System.Data.Common;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Antiforgery;
 using Spamira.Api.Services;
 
 namespace Spamira.Api.Infrastructure;
@@ -13,6 +14,10 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         var (status, detail) = exception switch
         {
             ArgumentException => (400, exception.Message),
+            UnauthorizedAccessException => (401, exception.Message),
+            AntiforgeryValidationException => (403, "Your session has changed. Refresh the page and try again."),
+            AccountConflictException => (409, exception.Message),
+            GuestLimitException => (429, exception.Message),
             BadHttpRequestException => (400, "The request is invalid. Check the submitted values."),
             MlUnavailableException => (503, exception.Message),
             DbException or DbUpdateException => (503, "Message history is temporarily unavailable. Please try again."),

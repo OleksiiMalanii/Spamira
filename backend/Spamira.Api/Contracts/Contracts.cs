@@ -5,10 +5,10 @@ namespace Spamira.Api.Contracts;
 
 public sealed record ClassificationRequest(string? Message);
 public sealed record ClassificationResponse(Guid Id, string Message, string Label, double Confidence,
-    double SpamProbability, double LegitimateProbability, DateTime CreatedAt, long ProcessingTimeMs, string ModelVersion)
+    double SpamProbability, double LegitimateProbability, DateTime CreatedAt, long ProcessingTimeMs, string ModelVersion, bool SavedToHistory)
 {
     public static ClassificationResponse From(ClassificationResult r) => new(r.Id, r.Message, r.Label,
-        r.Confidence, r.SpamProbability, r.LegitimateProbability, r.CreatedAt, r.ProcessingTimeMs, r.ModelVersion);
+        r.Confidence, r.SpamProbability, r.LegitimateProbability, r.CreatedAt, r.ProcessingTimeMs, r.ModelVersion, r.UserId.HasValue);
 }
 public sealed record PageResponse<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount, int TotalPages);
 public sealed record DashboardResponse(int TotalAnalyzed, int SpamCount, int LegitimateCount, double SpamPercentage,
