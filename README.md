@@ -4,13 +4,15 @@
 
 Machine learning-powered web application for real-time spam detection and text message classification.
 
-Spamira turns a text message into a clear classification, a confidence score, and a probability breakdown. A shared dashboard brings classification history and measured model performance into one workspace.
+Spamira turns a text message into a clear classification, a confidence score, and a probability breakdown. Personal accounts bring private classification history, activity statistics, and measured model performance into one workspace.
 
 ![Spamira message analyzer](docs/screenshots/analyzer-desktop.png)
 
 ## Features
 
 - **Message analyzer:** spam or legitimate results with both class probabilities, confidence, and timestamp.
+- **Free accounts:** email/password registration, sign-in, secure cookie sessions, and private history.
+- **Guest access:** 10 successful analyses per UTC day per network address, without saved messages; signed-in accounts have no daily guest cap.
 - **Workspace overview:** persisted message totals, spam rate, recent activity, and model availability.
 - **Classification history:** full message expansion, search, label filtering, pagination, and date sorting.
 - **Transparent model metrics:** accuracy, precision, recall, F1-score, confusion matrix, and training metadata.
@@ -69,7 +71,7 @@ docker compose logs -f
 docker compose down
 ```
 
-`down` preserves history. `docker compose down -v` deletes the database volume and all stored classifications.
+`down` preserves accounts, history, and session encryption keys. `docker compose down -v` deletes these volumes and their contents.
 
 ## Local development
 
@@ -179,7 +181,7 @@ cd ml-service
 python -m pytest -q
 cd ..
 
-# Running-stack smoke test: creates two real classification records
+# Running-stack smoke test: creates test accounts and two real classification records
 python scripts/smoke_test.py
 
 # Browser tests against a running frontend and complete backend
@@ -190,13 +192,20 @@ npm run test:e2e
 
 Browser tests default to port 5173. Set `E2E_BASE_URL=http://localhost:3000` for Compose (PowerShell: `$env:E2E_BASE_URL='http://localhost:3000'`). Tests cover desktop and mobile workflows and save real analysis records in the target deployment. Use a development database.
 
-The CI workflow builds each layer, runs tests, starts the full Compose stack, checks real predictions, runs browser tests, and verifies message counts after restarting the database and API.
+The CI workflow builds each layer, runs tests, starts the full Compose stack, checks real predictions, runs browser tests, and verifies private history and the account session after restarting the database and API.
+
+To verify concurrent guest enforcement, run `python scripts/verify_guest_quota.py` against a test deployment. This consumes the remaining guest allowance for the current network and UTC day.
 
 ## API overview
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| POST | `/api/classifications` | Analyze and persist a message |
+| POST | `/api/auth/register` | Create an account and sign in |
+| POST | `/api/auth/login` | Sign in with email and password |
+| POST | `/api/auth/logout` | Sign out |
+| GET | `/api/auth/session` | Current account or remaining guest allowance |
+| GET | `/api/auth/csrf` | Token required for POST requests |
+| POST | `/api/classifications` | Analyze; save only for signed-in accounts |
 | GET | `/api/classifications` | Paginated, searchable, filtered history |
 | GET | `/api/classifications/{id}` | Read one result |
 | GET | `/api/dashboard/stats` | Totals, spam rate, recent results, model status |
@@ -228,9 +237,13 @@ Spamira/
 
 ## Deployment notes
 
-Spamira is a shared workspace without sign-in. Compose exposes ports on loopback. Use a trusted network, or add HTTPS and access controls at your reverse proxy before publishing a deployment. Messages are retained in PostgreSQL until an operator removes them; define a retention and backup policy for your deployment.
+Accounts own their saved history and dashboard statistics. Guests cannot read history, and their message text is not stored. Guest allowances reset at 00:00 UTC and are counted by a hashed network address in PostgreSQL. People behind the same NAT share an allowance; clearing cookies does not reset it. Changing networks can change the allowance, so anonymous quotas are not a per-person identity guarantee. Invalid input and failed predictions do not consume the allowance. Signed-in users have no daily quota; a 60-requests-per-minute abuse guard still applies.
 
-Classification probabilities are model estimates, not guarantees. English SMS is the intended input; unfamiliar language and new spam patterns can reduce accuracy. Do not submit sensitive personal data to a shared instance.
+Compose exposes ports on loopback. Use HTTPS and set `AUTH_SECURE_COOKIES=true` before publishing. Keep the `auth-keys` volume alongside database backups so existing sessions survive restarts. The configured frontend proxy overwrites client-IP headers, and the API trusts its explicit internal address. Configure any additional reverse proxy deliberately; see [architecture](docs/architecture.md). Messages are retained until an operator removes them; define a retention and backup policy.
+
+The account migration preserves previous unowned classifications but does not expose or assign them to new accounts. Email verification and password recovery are not included in this release.
+
+Classification probabilities are model estimates, not guarantees. English SMS is the intended input; unfamiliar language and new spam patterns can reduce accuracy. Avoid submitting sensitive personal data.
 
 Read [architecture and operational behavior](docs/architecture.md) for configuration boundaries, timeouts, health checks, and persistence details.
 

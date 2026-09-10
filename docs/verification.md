@@ -1,29 +1,33 @@
 # Verification
 
-The application has been exercised locally against the trained model, ASP.NET Core API, PostgreSQL 17, and the React frontend.
+The account release has been exercised against real TF-IDF/Logistic Regression inference and PostgreSQL, using both local processes and the complete Docker Compose deployment on Windows with WSL 2.
 
 | Check | Result |
 | --- | --- |
 | Frontend production build | Passed |
-| Frontend component/service tests | 6 passed |
-| Backend Release build | Passed, no warnings |
-| Backend unit/integration tests | 20 passed |
+| Frontend component/service/session tests | 8 passed |
+| Backend Release build | Passed |
+| Backend unit/integration tests | 29 passed |
 | Python model and service tests | 9 passed |
-| Browser end-to-end tests | 4 passed across desktop and mobile |
-| Real API → ML → PostgreSQL smoke test | Passed |
+| Browser end-to-end scenarios | 4 passed across desktop and mobile |
+| Account registration, login, logout, and private history | Passed with real services |
+| Isolation between different accounts | Passed |
+| Guest requests never stored in history | Passed |
+| Guest allowance reset at UTC midnight | Passed with controlled server clock |
+| Concurrent PostgreSQL guest allowance | Passed; exactly 10 successes from 12 requests with a fresh allowance |
 | EF Core migration snapshot consistency | Passed |
-| EF Core PostgreSQL SQL generation | Passed |
-| Migration application on a fresh PostgreSQL database | Passed |
-| History retained after PostgreSQL and API restart | Passed; all 14 existing records retained |
-| Docker Compose configuration validation | Passed |
-| Container image builds and complete Compose startup | Passed on Linux CI |
-| Smoke test and browser tests against Docker deployment | Passed |
-| Docker database and API restart persistence | Passed |
+| Account migration on an existing PostgreSQL database | Passed; previous unowned records retained and hidden |
+| Docker Compose configuration and image builds | Passed |
+| Complete Compose startup | All four services healthy |
+| Browser scenarios through Nginx | Passed |
+| Session and private history after PostgreSQL/API restart | Passed through Nginx |
 
-The smoke test checks real spam and legitimate predictions, both probabilities, exact equality between the creation response and persisted record, search, filtering, dashboard totals, model metrics, and invalid input rejection. Browser tests use live services and cover the analyzer, history, metrics, dashboard, and information page.
+The smoke test creates independent accounts and verifies real spam/legitimate predictions, both probabilities, exact persisted-result equality, search, filters, private statistics, model metrics, validation, and account isolation. Its optional saved-session mode verifies that cookies and history survive service restarts. Temporary state files contain a session cookie and should be kept private.
 
-The complete [GitHub Actions verification run](https://github.com/OleksiiMalanii/Spamira/actions/runs/34350598441) passed for application commit `1cdbaf7`. It built all images, started the complete Compose stack on Linux, ran real API and browser checks, and confirmed unchanged message counts after restarting PostgreSQL and the API.
+The concurrent quota script launches twelve requests and verifies the database-enforced allowance using fresh cookie jars. It consumes the guest allowance on the test network for that UTC day. Backend tests separately exercise midnight reset, validation and inference-failure refunds, absent CSRF, password hashing, lockout, duplicate registration, and member access beyond ten analyses. Frontend tests cover stale session responses that finish after login.
 
-The local Windows host requires a restart after enabling Virtual Machine Platform and reports unavailable firmware virtualization. Docker Desktop and WSL are installed. The application was additionally verified using local processes and PostgreSQL before that restart.
+Browser tests use live services for guest classification and account registration, private history, logout, sign-in, metrics, dashboard, and responsive layout. The logout test waits for the completed sign-out state before navigating.
 
-Run the commands in the README to reproduce the checks. Test counts and the reference model metrics describe this revision.
+Nginx resolves backend addresses through Docker DNS with a short cache. Restart verification checks the public frontend proxy, which catches stale upstream routing as well as database or session persistence failures.
+
+Run the commands in the README to reproduce these checks. The [continuous integration workflow](https://github.com/OleksiiMalanii/Spamira/actions/workflows/ci.yml) also trains the model, builds all container images, tests the complete stack, exercises concurrent guest requests, and verifies restart persistence.
