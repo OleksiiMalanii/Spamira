@@ -1,3 +1,4 @@
+import { getLocale } from './i18n';
 import { z } from 'zod';
 
 const probability = z.number().min(0).max(1);
@@ -43,6 +44,18 @@ export const metricsSchema = z.object({
   trainingSamples: z.number(),
   testSamples: z.number(),
   uniqueSamples: z.number(),
+  perLanguage: z
+    .record(
+      z.string(),
+      z.object({
+        accuracy: probability,
+        precision: probability,
+        recall: probability,
+        f1Score: probability,
+        testSamples: z.number(),
+      }),
+    )
+    .optional(),
   dataset: z.string(),
   algorithm: z.string(),
 });
@@ -112,7 +125,7 @@ export const analyze = (message: string) =>
   });
 export const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
 export const dateTime = (value: string) =>
-  new Date(value).toLocaleString(undefined, {
+  new Date(value).toLocaleString(getLocale(), {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',

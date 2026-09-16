@@ -1,55 +1,66 @@
+import { t, useLocale } from '../lib/i18n';
 import { ArrowRight, Binary, FileText, Layers3, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function About() {
+  useLocale();
+
   return (
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">MEET SPAMIRA</div>
-          <h1>Make sense of the message.</h1>
+          <div className="eyebrow">{t('MEET SPAMIRA')}</div>
+          <h1>{t('Make sense of the message.')}</h1>
           <p>
-            Machine learning-powered web application for real-time spam detection and text message
-            classification.
+            {t(
+              'Machine learning-powered web application for real-time spam detection and text message classification.',
+            )}
           </p>
         </div>
       </div>
       <section className="about-hero">
         <ShieldCheck size={42} strokeWidth={1.4} />
         <h2>
-          A clearer inbox starts
+          {t('A clearer inbox starts')}
           <br />
-          with an informed decision.
+          {t('with an informed decision.')}
         </h2>
         <p>
-          Spamira analyzes the language in a text message and classifies it as spam or legitimate.
-          Every result includes both class probabilities, so you can see how confidently the model
-          reached its decision.
+          {t(
+            'Spamira analyzes the language in a text message and classifies it as spam or legitimate. Every result includes both class probabilities, so you can see how confidently the model reached its decision.',
+          )}
         </p>
         <Link to="/analyzer" className="button ink">
-          Analyze your first message <ArrowRight size={16} />
+          {t('Analyze your first message')}
+          <ArrowRight size={16} />
         </Link>
       </section>
       <div className="section-heading about-heading">
-        <h2>From text to insight</h2>
-        <span className="muted">One reproducible pipeline</span>
+        <h2>{t('From text to insight')}</h2>
+        <span className="muted">{t('One reproducible pipeline')}</span>
       </div>
       <div className="process-grid">
         {[
           {
             icon: FileText,
-            title: 'Normalize the text',
-            text: 'Unicode, letter case, and whitespace are normalized. Numbers and punctuation remain available to the text pipeline.',
+            title: t('Normalize the text'),
+            text: t(
+              'Unicode, letter case, and whitespace are normalized. Numbers and punctuation remain available to the text pipeline.',
+            ),
           },
           {
             icon: Layers3,
-            title: 'Find meaningful patterns',
-            text: 'TF-IDF converts words and pairs of words into numerical features, weighting distinctive terms more strongly.',
+            title: t('Find meaningful patterns'),
+            text: t(
+              'TF-IDF combines word pairs and character fragments to recognize English and Ukrainian vocabulary and word forms.',
+            ),
           },
           {
             icon: Binary,
-            title: 'Calculate probabilities',
-            text: 'Logistic Regression scores these features and returns a probability for spam and legitimate. The higher probability determines the class.',
+            title: t('Calculate probabilities'),
+            text: t(
+              'Logistic Regression scores these features and returns a probability for spam and legitimate. The higher probability determines the class.',
+            ),
           },
         ].map(({ icon: Icon, title, text }, index) => (
           <section className="card process-card" key={title}>
@@ -64,22 +75,23 @@ export function About() {
       </div>
       <section className="card about-details">
         <div>
-          <h2>Useful insight. Honest limitations.</h2>
+          <h2>{t('Useful insight. Honest limitations.')}</h2>
           <p>
-            The model is trained on the public UCI SMS Spam Collection, primarily English SMS
-            messages. New scams, unfamiliar vocabulary, and other languages can be harder to
-            classify. Confidence is a model probability, not a guarantee that a message is safe.
+            {t(
+              'The model supports English and Ukrainian using a public parallel SMS corpus and curated message scenarios. Ukrainian corpus examples are translated; performance on modern messages can differ. Unsolicited advertising counts as spam. Text alone cannot establish sender consent. Confidence is not a safety guarantee.',
+            )}
           </p>
           <Link to="/metrics" className="text-link">
-            Explore the model’s performance <ArrowRight size={15} />
+            {t('Explore the model’s performance')}
+            <ArrowRight size={15} />
           </Link>
         </div>
         <div>
-          <h2>Your workspace, your history.</h2>
+          <h2>{t('Your workspace, your history.')}</h2>
           <p>
-            Signed-in analyses are saved in your private workspace. Only your account can read its
-            history and statistics. Guests receive 10 analyses per day without saved history;
-            creating a free account removes that daily guest allowance.
+            {t(
+              'Signed-in analyses are saved in your private workspace. Only your account can read its history and statistics. Guests receive 10 analyses per day without saved history; creating a free account removes that daily guest allowance.',
+            )}
           </p>
           <a
             href="https://archive.ics.uci.edu/dataset/228/sms+spam+collection"
@@ -87,7 +99,8 @@ export function About() {
             rel="noreferrer"
             className="text-link"
           >
-            View the source dataset <ArrowRight size={15} />
+            {t('View the source dataset')}
+            <ArrowRight size={15} />
           </a>
         </div>
       </section>

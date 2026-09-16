@@ -2288,3 +2288,64 @@ select {
     width: 100%;
   }
 }
+.language-switch {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border, #dce3d9);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.language-switch button {
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  padding: 5px 7px;
+  color: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.language-switch button[aria-pressed='true'] {
+  background: #234d3b;
+  color: white;
+}
+.uncertainty-note {
+  color: #7a4c20;
+  background: #fff3dc;
+  border: 1px solid #ebd4ab;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media (max-width: 560px) {
+  .topbar {
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 8px;
+  }
+  .topbar-right {
+    gap: 8px;
+  }
+  .header-register {
+    display: none;
+  }
+  .breadcrumb strong {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.language-metrics {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.language-metrics h2 {
+  margin-bottom: 16px;
+}
+.message-cell details > .text-link {
+  display: block;
+  margin-top: 10px;
+}

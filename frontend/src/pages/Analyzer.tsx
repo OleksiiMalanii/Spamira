@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n';
 import {
   ArrowRight,
   Check,
@@ -10,16 +11,21 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { analyze, dateTime, percent } from '../lib/api';
 import type { Classification } from '../lib/api';
 import { ErrorNotice } from '../components/Common';
 import { useAuth } from '../lib/auth';
 
 export function Analyzer() {
+  const locale = useLocale();
+
   const auth = useAuth();
   const exhausted = !auth.user && auth.quota?.remaining === 0;
-  const [text, setText] = useState('');
+  const location = useLocation();
+  const [text, setText] = useState(() =>
+    typeof location.state?.message === 'string' ? location.state.message.slice(0, 5000) : '',
+  );
   const [result, setResult] = useState<Classification>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -40,7 +46,7 @@ export function Analyzer() {
     try {
       setResult(await analyze(text));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Please try again.');
+      setError(reason instanceof Error ? reason.message : t('Please try again.'));
     } finally {
       setLoading(false);
       void auth.refresh();
@@ -56,12 +62,13 @@ export function Analyzer() {
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">A SECOND LOOK, IN SECONDS</div>
-          <h1>Message analyzer</h1>
-          <p>Turn a suspicious text into an informed decision.</p>
+          <div className="eyebrow">{t('A SECOND LOOK, IN SECONDS')}</div>
+          <h1>{t('Message analyzer')}</h1>
+          <p>{t('Turn a suspicious text into an informed decision.')}</p>
         </div>
         <span className="outline-chip">
-          <ScanText size={15} /> Text classification
+          <ScanText size={15} />
+          {t('Text classification')}
         </span>
       </div>
       {!auth.user && (
@@ -69,16 +76,19 @@ export function Analyzer() {
           <div>
             <strong>
               {exhausted
-                ? 'Your daily guest allowance is used up.'
-                : `${auth.quota?.remaining ?? '—'} of 10 free analyses left today`}
+                ? t('Your daily guest allowance is used up.')
+                : t('{count} of 10 free analyses left today', {
+                    count: auth.quota?.remaining ?? '—',
+                  })}
             </strong>
             <p>
-              Guest results aren’t saved. The allowance resets at 00:00 UTC and is shared on the
-              same network.
+              {t(
+                'Guest results aren’t saved. The allowance resets at 00:00 UTC and is shared on the same network.',
+              )}
             </p>
           </div>
           <Link to="/register" className="button secondary">
-            {exhausted ? 'Create account to continue' : 'Unlock your free account'}{' '}
+            {exhausted ? t('Create account to continue') : t('Unlock your free account')}{' '}
             <ArrowRight size={15} />
           </Link>
         </div>
@@ -88,16 +98,16 @@ export function Analyzer() {
         <section className="card input-card">
           <div className="section-heading">
             <div>
-              <h2>What’s in your message?</h2>
-              <p>Paste a text below. We’ll help you read between the lines.</p>
+              <h2>{t('What’s in your message?')}</h2>
+              <p>{t('Paste a text below. We’ll help you read between the lines.')}</p>
             </div>
             <span className="step-number">01</span>
           </div>
           <form onSubmit={submit}>
-            <label htmlFor="message">Message content</label>
+            <label htmlFor="message">{t('Message content')}</label>
             <textarea
               id="message"
-              placeholder="Paste or type a message you’d like to check…"
+              placeholder={t('Paste or type a message you’d like to check…')}
               value={text}
               onChange={(e) => changeText(e.target.value)}
               maxLength={5000}
@@ -105,28 +115,38 @@ export function Analyzer() {
               aria-describedby="message-hint"
             />
             <div className="input-meta" id="message-hint">
-              <span>English text works best</span>
+              <span>{t('English and Ukrainian supported')}</span>
               <span>{text.length.toLocaleString()} / 5,000</span>
             </div>
             <div className="examples">
-              <span>Try an example</span>
+              <span>{t('Try an example')}</span>
               <button
                 type="button"
                 disabled={loading}
                 onClick={() =>
                   changeText(
-                    'WINNER! You have won a free cash prize! Call now to claim your reward!',
+                    locale === 'uk'
+                      ? 'Вітаємо! Ви виграли грошовий приз! Телефонуйте негайно, щоб отримати виграш!'
+                      : 'WINNER! You have won a free cash prize! Call now to claim your reward!',
                   )
                 }
               >
-                Suspicious text <ArrowRight size={12} />
+                {t('Suspicious text')}
+                <ArrowRight size={12} />
               </button>
               <button
                 type="button"
                 disabled={loading}
-                onClick={() => changeText('Hey, are we still meeting for lunch tomorrow?')}
+                onClick={() =>
+                  changeText(
+                    locale === 'uk'
+                      ? 'Привіт! Ми все ще зустрічаємося завтра на обід?'
+                      : 'Hey, are we still meeting for lunch tomorrow?',
+                  )
+                }
               >
-                Everyday message <ArrowRight size={12} />
+                {t('Everyday message')}
+                <ArrowRight size={12} />
               </button>
             </div>
             {error && <ErrorNotice message={error} />}
@@ -137,14 +157,14 @@ export function Analyzer() {
                 disabled={loading || !text}
                 onClick={() => changeText('')}
               >
-                Clear message
+                {t('Clear message')}
               </button>
               <button
                 className="button primary"
                 disabled={loading || exhausted || auth.loading || Boolean(auth.error)}
               >
                 {loading ? <LoaderCircle size={17} className="spin" /> : <ScanText size={17} />}
-                {loading ? 'Analyzing…' : 'Analyze message'}
+                {loading ? t('Analyzing…') : t('Analyze message')}
               </button>
             </div>
           </form>
@@ -152,8 +172,12 @@ export function Analyzer() {
             <Info size={15} />
             <span>
               {auth.user
-                ? 'Analyzed messages are saved to your private history. Avoid submitting sensitive personal information.'
-                : 'Guest messages are processed without being saved. Sign in to keep a private analysis history.'}
+                ? t(
+                    'Analyzed messages are saved to your private history. Avoid submitting sensitive personal information.',
+                  )
+                : t(
+                    'Guest messages are processed without being saved. Sign in to keep a private analysis history.',
+                  )}
             </span>
           </div>
         </section>
@@ -163,7 +187,7 @@ export function Analyzer() {
           aria-busy={loading}
         >
           <div className="section-heading">
-            <h2>Analysis result</h2>
+            <h2>{t('Analysis result')}</h2>
             <span className="step-number">02</span>
           </div>
           {result ? (
@@ -171,21 +195,26 @@ export function Analyzer() {
               <div className={`result-symbol ${spam ? 'orange' : 'green'}`}>
                 {spam ? <ShieldAlert size={36} /> : <ShieldCheck size={36} />}
               </div>
-              <span className="eyebrow">MESSAGE CLASSIFICATION</span>
-              <h2 className="result-label">{spam ? 'Spam' : 'Legitimate'}</h2>
+              <span className="eyebrow">{t('MESSAGE CLASSIFICATION')}</span>
+              <h2 className="result-label">{spam ? t('Spam') : t('Legitimate')}</h2>
               <p className="result-description">
                 {spam
-                  ? 'This message shows patterns commonly associated with spam.'
-                  : 'This message looks like an everyday conversation.'}
+                  ? t('This message shows patterns commonly associated with spam.')
+                  : t('This message looks like an everyday conversation.')}
               </p>
+              {result.confidence < 0.8 && (
+                <p className="uncertainty-note" role="note">
+                  {t('Low confidence. Review the sender and context before trusting this result.')}
+                </p>
+              )}
               <div className="confidence">
-                <span>Model confidence</span>
+                <span>{t('Model confidence')}</span>
                 <strong>{percent(result.confidence)}</strong>
               </div>
               <div
                 className="probability-bar"
                 role="img"
-                aria-label={`Spam ${percent(result.spamProbability)}, legitimate ${percent(result.legitimateProbability)}`}
+                aria-label={`${t('Spam')} ${percent(result.spamProbability)}, ${t('Legitimate').toLowerCase()} ${percent(result.legitimateProbability)}`}
               >
                 <i style={{ width: percent(result.legitimateProbability) }} />
                 <i style={{ width: percent(result.spamProbability) }} />
@@ -193,11 +222,13 @@ export function Analyzer() {
               <div className="probability-labels">
                 <span>
                   <i className="green-dot" />
-                  Legitimate<strong>{percent(result.legitimateProbability)}</strong>
+                  {t('Legitimate')}
+                  <strong>{percent(result.legitimateProbability)}</strong>
                 </span>
                 <span>
                   <i className="orange-dot" />
-                  Spam<strong>{percent(result.spamProbability)}</strong>
+                  {t('Spam')}
+                  <strong>{percent(result.spamProbability)}</strong>
                 </span>
               </div>
               <div className="result-timestamp">
@@ -207,11 +238,13 @@ export function Analyzer() {
               {result.savedToHistory ? (
                 <Link className="saved-link" to="/history">
                   <Check size={14} />
-                  Saved to classification history <ArrowRight size={14} />
+                  {t('Saved to classification history')}
+                  <ArrowRight size={14} />
                 </Link>
               ) : (
                 <Link className="saved-link" to="/register">
-                  Guest result · not saved. Create an account <ArrowRight size={14} />
+                  {t('Guest result · not saved. Create an account')}
+                  <ArrowRight size={14} />
                 </Link>
               )}
             </>
@@ -224,11 +257,13 @@ export function Analyzer() {
                   <ScanText size={44} strokeWidth={1.2} />
                 )}
               </div>
-              <h3>{loading ? 'Reading the signals…' : 'Clarity is one click away'}</h3>
+              <h3>{loading ? t('Reading the signals…') : t('Clarity is one click away')}</h3>
               <p>
                 {loading
-                  ? 'Checking patterns and calculating probabilities.'
-                  : 'Your classification, confidence, and probability breakdown will appear here.'}
+                  ? t('Checking patterns and calculating probabilities.')
+                  : t(
+                      'Your classification, confidence, and probability breakdown will appear here.',
+                    )}
               </p>
             </div>
           )}
@@ -237,18 +272,18 @@ export function Analyzer() {
       <div className="info-cards">
         <div>
           <Sparkles size={20} />
-          <h3>Patterns, not rules</h3>
-          <p>Trained on real messages to recognize the language of spam.</p>
+          <h3>{t('Patterns, not rules')}</h3>
+          <p>{t('Trained on real messages to recognize the language of spam.')}</p>
         </div>
         <div>
           <ShieldCheck size={20} />
-          <h3>Confidence included</h3>
-          <p>See probabilities for both classes, with every analysis.</p>
+          <h3>{t('Confidence included')}</h3>
+          <p>{t('See probabilities for both classes, with every analysis.')}</p>
         </div>
         <div>
           <Info size={20} />
-          <h3>A useful second opinion</h3>
-          <p>Predictions can be wrong. Always use your judgment before responding.</p>
+          <h3>{t('A useful second opinion')}</h3>
+          <p>{t('Predictions can be wrong. Always use your judgment before responding.')}</p>
         </div>
       </div>
     </>

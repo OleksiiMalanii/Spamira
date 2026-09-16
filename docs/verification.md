@@ -1,15 +1,15 @@
 # Verification
 
-The account release has been exercised against real TF-IDF/Logistic Regression inference and PostgreSQL, using both local processes and the complete Docker Compose deployment on Windows with WSL 2.
+The bilingual model and account release has been exercised against real TF-IDF/Logistic Regression inference and PostgreSQL, using both local processes and the complete Docker Compose deployment on Windows with WSL 2.
 
 | Check | Result |
 | --- | --- |
 | Frontend production build | Passed |
-| Frontend component/service/session tests | 8 passed |
+| Frontend component/service/session tests | 9 passed |
 | Backend Release build | Passed |
-| Backend unit/integration tests | 29 passed |
-| Python model and service tests | 9 passed |
-| Browser end-to-end scenarios | 4 passed across desktop and mobile |
+| Backend unit/integration tests | 30 passed |
+| Python model and service tests | 14 passed |
+| Browser end-to-end scenarios | 6 passed across desktop and mobile |
 | Account registration, login, logout, and private history | Passed with real services |
 | Isolation between different accounts | Passed |
 | Guest requests never stored in history | Passed |
@@ -31,3 +31,5 @@ Browser tests use live services for guest classification and account registratio
 Nginx resolves backend addresses through Docker DNS with a short cache. Restart verification checks the public frontend proxy, which catches stale upstream routing as well as database or session persistence failures.
 
 Run the commands in the README to reproduce these checks. The [continuous integration workflow](https://github.com/OleksiiMalanii/Spamira/actions/workflows/ci.yml) also trains the model, builds all container images, tests the complete stack, exercises concurrent guest requests, and verifies restart persistence.
+
+The bilingual release also verifies English/Ukrainian interface switching, saved language preference, draft preservation, per-language metrics, zero-feature input rejection, and translation/duplicate isolation across all data folds. Windows browser checks use installed Microsoft Edge; backend and ML tests run in Linux containers. Historical results retain their original model version.

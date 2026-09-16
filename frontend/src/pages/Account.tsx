@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n';
 import {
   ArrowRight,
   Eye,
@@ -13,6 +14,8 @@ import { ErrorNotice, Loading } from '../components/Common';
 import { useAuth } from '../lib/auth';
 
 export function Account({ mode }: { mode: 'login' | 'register' }) {
+  useLocale();
+
   const auth = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,7 +40,7 @@ export function Account({ mode }: { mode: 'login' | 'register' }) {
       else await auth.login({ email: email.trim(), password, rememberMe });
       navigate(destination, { replace: true });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Please try again.');
+      setError(reason instanceof Error ? reason.message : t('Please try again.'));
     } finally {
       setBusy(false);
     }
@@ -46,12 +49,12 @@ export function Account({ mode }: { mode: 'login' | 'register' }) {
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">YOUR OWN CORNER OF CLARITY</div>
-          <h1>{register ? 'Make room for better messages.' : 'Welcome back.'}</h1>
+          <div className="eyebrow">{t('YOUR OWN CORNER OF CLARITY')}</div>
+          <h1>{register ? t('Make room for better messages.') : t('Welcome back.')}</h1>
           <p>
             {register
-              ? 'Create a free account to keep your insights in one private workspace.'
-              : 'Sign in to pick up where you left off.'}
+              ? t('Create a free account to keep your insights in one private workspace.')
+              : t('Sign in to pick up where you left off.')}
           </p>
         </div>
       </div>
@@ -60,16 +63,16 @@ export function Account({ mode }: { mode: 'login' | 'register' }) {
           <div className="account-icon">
             <LockKeyhole size={25} />
           </div>
-          <h2>{register ? 'Create your account' : 'Sign in to Spamira'}</h2>
+          <h2>{register ? t('Create your account') : t('Sign in to Spamira')}</h2>
           <p>
             {register
-              ? 'No guest limit. A history that belongs to you.'
-              : 'Your messages and analysis history are waiting.'}
+              ? t('No guest limit. A history that belongs to you.')
+              : t('Your messages and analysis history are waiting.')}
           </p>
           <form onSubmit={submit}>
             {register && (
               <div className="field">
-                <label htmlFor="display-name">Your name</label>
+                <label htmlFor="display-name">{t('Your name')}</label>
                 <input
                   id="display-name"
                   autoComplete="name"
@@ -78,12 +81,12 @@ export function Account({ mode }: { mode: 'login' | 'register' }) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   disabled={busy}
-                  placeholder="Alex Morgan"
+                  placeholder={t('Alex Morgan')}
                 />
               </div>
             )}
             <div className="field">
-              <label htmlFor="email">Email address</label>
+              <label htmlFor="email">{t('Email address')}</label>
               <input
                 id="email"
                 type="email"
@@ -93,11 +96,11 @@ export function Account({ mode }: { mode: 'login' | 'register' }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={busy}
-                placeholder="you@example.com"
+                placeholder={t('you@example.com')}
               />
             </div>
             <div className="field">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">{t('Password')}</label>
               <div className="password-input">
                 <input
                   id="password"
@@ -113,7 +116,7 @@ export function Account({ mode }: { mode: 'login' | 'register' }) {
                 />
                 <button
                   type="button"
-                  aria-label={visible ? 'Hide password' : 'Show password'}
+                  aria-label={visible ? t('Hide password') : t('Show password')}
                   onClick={() => setVisible(!visible)}
                 >
                   {visible ? <EyeOff size={17} /> : <Eye size={17} />}
@@ -121,7 +124,7 @@ export function Account({ mode }: { mode: 'login' | 'register' }) {
               </div>
               {register && (
                 <small id="password-hint">
-                  10–128 characters, including uppercase and lowercase letters and a number.
+                  {t('10–128 characters, including uppercase and lowercase letters and a number.')}
                 </small>
               )}
             </div>
@@ -133,54 +136,56 @@ export function Account({ mode }: { mode: 'login' | 'register' }) {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   disabled={busy}
                 />
-                Keep me signed in on this device
+                {t('Keep me signed in on this device')}
               </label>
             )}
             {error && <ErrorNotice message={error} />}
             <button className="button primary account-submit" disabled={busy}>
               {busy ? <LoaderCircle size={17} className="spin" /> : <ArrowRight size={17} />}
-              {busy ? 'Please wait…' : register ? 'Create account' : 'Sign in'}
+              {busy ? t('Please wait…') : register ? t('Create account') : t('Sign in')}
             </button>
           </form>
           <div className="account-switch">
-            {register ? 'Already have an account?' : 'New to Spamira?'}{' '}
+            {register ? t('Already have an account?') : t('New to Spamira?')}{' '}
             <Link to={register ? '/login' : '/register'} state={location.state}>
-              {register ? 'Sign in' : 'Create an account'}
+              {register ? t('Sign in') : t('Create an account')}
             </Link>
           </div>
           <Link className="guest-link" to="/analyzer">
-            Continue as a guest
+            {t('Continue as a guest')}
           </Link>
         </section>
         <section className="account-benefits">
           <ShieldCheck size={42} strokeWidth={1.3} />
           <h2>
-            More insight.
+            {t('More insight.')}
             <br />
-            Entirely yours.
+            {t('Entirely yours.')}
           </h2>
           <div>
             <History size={20} />
             <span>
-              <strong>Your private history</strong>
-              <p>Revisit results, search your messages, and track your own activity.</p>
+              <strong>{t('Your private history')}</strong>
+              <p>{t('Revisit results, search your messages, and track your own activity.')}</p>
             </span>
           </div>
           <div>
             <ShieldCheck size={20} />
             <span>
-              <strong>Keep analyzing</strong>
-              <p>Signed-in accounts are free from the 10-per-day guest allowance.</p>
+              <strong>{t('Keep analyzing')}</strong>
+              <p>{t('Signed-in accounts are free from the 10-per-day guest allowance.')}</p>
             </span>
           </div>
           <div>
             <LockKeyhole size={20} />
             <span>
-              <strong>Private by default</strong>
-              <p>Only your account can access your saved messages and results.</p>
+              <strong>{t('Private by default')}</strong>
+              <p>{t('Only your account can access your saved messages and results.')}</p>
             </span>
           </div>
-          <small>Trying things out? Guests get 10 analyses a day, without saved history.</small>
+          <small>
+            {t('Trying things out? Guests get 10 analyses a day, without saved history.')}
+          </small>
         </section>
       </div>
     </>

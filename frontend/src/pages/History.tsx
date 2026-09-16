@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { historySchema } from '../lib/api';
@@ -5,6 +6,8 @@ import { useResource } from '../lib/useResource';
 import { Empty, ErrorNotice, Loading, MessageTable } from '../components/Common';
 
 export function History() {
+  useLocale();
+
   const [search, setSearch] = useState('');
   const [term, setTerm] = useState('');
   const [label, setLabel] = useState('');
@@ -28,9 +31,9 @@ export function History() {
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">EVERY MESSAGE, ACCOUNTED FOR</div>
-          <h1>Classification history</h1>
-          <p>Find a past analysis and revisit the signals behind it.</p>
+          <div className="eyebrow">{t('EVERY MESSAGE, ACCOUNTED FOR')}</div>
+          <h1>{t('Classification history')}</h1>
+          <p>{t('Find a past analysis and revisit the signals behind it.')}</p>
         </div>
       </div>
       <section className="card history-card">
@@ -38,8 +41,8 @@ export function History() {
           <div className="search-field">
             <Search size={17} />
             <input
-              aria-label="Search messages"
-              placeholder="Search message content…"
+              aria-label={t('Search messages')}
+              placeholder={t('Search message content…')}
               value={search}
               maxLength={5000}
               onChange={(e) => setSearch(e.target.value)}
@@ -47,27 +50,27 @@ export function History() {
           </div>
           <div className="filters">
             <select
-              aria-label="Filter by classification"
+              aria-label={t('Filter by classification')}
               value={label}
               onChange={(e) => {
                 setLabel(e.target.value);
                 setPage(1);
               }}
             >
-              <option value="">All classifications</option>
-              <option value="spam">Spam</option>
-              <option value="legitimate">Legitimate</option>
+              <option value="">{t('All classifications')}</option>
+              <option value="spam">{t('Spam')}</option>
+              <option value="legitimate">{t('Legitimate')}</option>
             </select>
             <select
-              aria-label="Sort by date"
+              aria-label={t('Sort by date')}
               value={sort}
               onChange={(e) => {
                 setSort(e.target.value);
                 setPage(1);
               }}
             >
-              <option value="desc">Newest first</option>
-              <option value="asc">Oldest first</option>
+              <option value="desc">{t('Newest first')}</option>
+              <option value="asc">{t('Oldest first')}</option>
             </select>
           </div>
         </div>
@@ -86,24 +89,28 @@ export function History() {
               <div className="pagination">
                 <span>
                   {data.totalCount === 0
-                    ? 'No messages'
-                    : `${(page - 1) * 10 + 1}–${Math.min(page * 10, data.totalCount)} of ${data.totalCount.toLocaleString()} messages`}
+                    ? t('No messages')
+                    : t('{first}–{last} of {total} messages', {
+                        first: (page - 1) * 10 + 1,
+                        last: Math.min(page * 10, data.totalCount),
+                        total: data.totalCount,
+                      })}
                 </span>
                 <div>
                   <button
                     className="icon-button"
-                    aria-label="Previous page"
+                    aria-label={t('Previous page')}
                     disabled={page <= 1}
                     onClick={() => setPage((p) => p - 1)}
                   >
                     <ChevronLeft size={18} />
                   </button>
                   <span>
-                    Page {page} of {Math.max(1, data.totalPages)}
+                    {t('Page {page} of {total}', { page, total: Math.max(1, data.totalPages) })}
                   </span>
                   <button
                     className="icon-button"
-                    aria-label="Next page"
+                    aria-label={t('Next page')}
                     disabled={page >= data.totalPages}
                     onClick={() => setPage((p) => p + 1)}
                   >
@@ -115,7 +122,12 @@ export function History() {
           )
         )}
       </section>
-      <p className="table-hint">Select a message to view its full text and model version.</p>
+      <p className="table-hint">
+        {t(
+          'Past results keep their original model version. Analyze the text again to use the current model.',
+        )}{' '}
+      </p>
+      <p className="table-hint">{t('Select a message to view its full text and model version.')}</p>
     </>
   );
 }

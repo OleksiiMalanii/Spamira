@@ -10,6 +10,7 @@ Spamira turns a text message into a clear classification, a confidence score, an
 
 ## Features
 
+- **English and Ukrainian:** persistent EN/UK interface switch, bilingual model, and separate language metrics.
 - **Message analyzer:** spam or legitimate results with both class probabilities, confidence, and timestamp.
 - **Free accounts:** email/password registration, sign-in, secure cookie sessions, and private history.
 - **Guest access:** 10 successful analyses per UTC day per network address, without saved messages; signed-in accounts have no daily guest cap.
@@ -19,6 +20,8 @@ Spamira turns a text message into a clear classification, a confidence score, an
 - **Reproducible training:** verified public dataset, deduplication before a stratified split, saved sklearn pipeline.
 - **Responsive interface:** desktop sidebar, mobile navigation, accessible forms, loading, empty, and error states.
 - **Operational foundations:** PostgreSQL persistence, EF Core migrations, safe errors, health checks, tests, and Docker Compose.
+
+![Ukrainian interface and bilingual model evaluation](docs/screenshots/metrics-uk.png)
 
 ## Architecture
 
@@ -57,7 +60,7 @@ Install Docker Engine with Compose, or Docker Desktop with the WSL 2 backend on 
 docker compose up --build --wait
 ```
 
-The first build downloads Python/Node/.NET dependencies and the UCI dataset, trains the model, creates the database, and applies EF Core migrations. Internet access is needed for the first build. Subsequent starts reuse images and the database volume.
+The first build downloads Python/Node/.NET dependencies and the public datasets, trains the model, creates the database, and applies EF Core migrations. Internet access is needed for the first build. Subsequent starts reuse images and the database volume.
 
 | Service | Default address |
 | --- | --- |
@@ -104,7 +107,7 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 If activation is restricted on Windows, call `.venv\Scripts\python.exe` directly instead of changing execution policy.
 
-The downloader verifies the dataset checksum. If downloading is unavailable, obtain `SMSSpamCollection` from the [UCI dataset page](https://archive.ics.uci.edu/dataset/228/sms+spam+collection), place it at `data/raw/SMSSpamCollection`, and run the training command. The file must use `ham<TAB>message` or `spam<TAB>message` rows.
+The downloader verifies the dataset checksum. If downloading is unavailable, obtain `SMSSpamCollection` from the [UCI dataset page](https://archive.ics.uci.edu/dataset/228/sms+spam+collection), place it at `data/raw/SMSSpamCollection`. Also download the pinned multilingual CSV described in the model card to `data/raw/multilingual.csv` before training. The UCI file uses `ham<TAB>message` or `spam<TAB>message` rows; the multilingual CSV must contain `labels`, `text`, and `text_uk` columns.
 
 Training creates `ml-service/models/spam_classifier.joblib` and `metrics.json`. These artifacts and the raw dataset are excluded from Git. Train before starting the ML service; missing artifacts make readiness fail with `503`.
 
@@ -157,9 +160,9 @@ The reference training run produced:
 
 | Accuracy | Precision | Recall | F1-score |
 | ---: | ---: | ---: | ---: |
-| 98.55% | 93.80% | 94.53% | 94.16% |
+| 98.51% | 96.41% | 91.67% | 93.98% |
 
-These measurements use 1,032 held-out SMS messages after removing duplicate normalized text. Spam is the positive class. The model combines word unigram/bigram TF-IDF with class-balanced Logistic Regression and returns `predict_proba` estimates. The UI always reads metrics from the loaded model.
+These measurements use 2,074 held-out English/Ukrainian examples. Translations, duplicate texts, and scenario families stay within the same split. Spam includes unsolicited advertising. The model combines word and character TF-IDF with validation-selected Logistic Regression and returns `predict_proba` estimates. The UI always reads metrics from the loaded model.
 
 See the [model card](docs/model-card.md) for preprocessing, split details, confusion matrix, and limitations. Retrain with `python -m training.train` from `ml-service`, then restart the ML service. To retrain Docker images from the current training code, rebuild the ML service with `docker compose build --no-cache ml-service` and run `docker compose up -d --wait`.
 
@@ -190,7 +193,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Browser tests default to port 5173. Set `E2E_BASE_URL=http://localhost:3000` for Compose (PowerShell: `$env:E2E_BASE_URL='http://localhost:3000'`). Tests cover desktop and mobile workflows and save real analysis records in the target deployment. Use a development database.
+Browser tests default to port 5173. Set `E2E_BASE_URL=http://localhost:3000` for Compose (PowerShell: `$env:E2E_BASE_URL='http://localhost:3000'`). Set `E2E_BROWSER_CHANNEL=msedge` to use an installed Microsoft Edge instead of the bundled Chromium browser. Tests cover desktop and mobile workflows and save real analysis records in the target deployment. Use a development database.
 
 The CI workflow builds each layer, runs tests, starts the full Compose stack, checks real predictions, runs browser tests, and verifies private history and the account session after restarting the database and API.
 
@@ -243,7 +246,7 @@ Compose exposes ports on loopback. Use HTTPS and set `AUTH_SECURE_COOKIES=true` 
 
 The account migration preserves previous unowned classifications but does not expose or assign them to new accounts. Email verification and password recovery are not included in this release.
 
-Classification probabilities are model estimates, not guarantees. English SMS is the intended input; unfamiliar language and new spam patterns can reduce accuracy. Avoid submitting sensitive personal data.
+Classification probabilities are model estimates, not guarantees. English and Ukrainian are supported; unfamiliar languages and new message styles can reduce accuracy. Ukrainian benchmark data includes automatic translations. Avoid submitting sensitive personal data.
 
 Read [architecture and operational behavior](docs/architecture.md) for configuration boundaries, timeouts, health checks, and persistence details.
 
@@ -252,3 +255,5 @@ See [verification results](docs/verification.md) for completed local and contain
 ## Dataset attribution
 
 Training uses the public [SMS Spam Collection](https://archive.ics.uci.edu/dataset/228/sms+spam+collection), contributed by Tiago Almeida and José Hidalgo (2011), hosted by the UCI Machine Learning Repository, DOI [10.24432/C5CC84](https://doi.org/10.24432/C5CC84). UCI lists the dataset under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The training pipeline normalizes and deduplicates the data as described in the model card. The repository includes a reproducible downloader rather than a copy of the corpus.
+
+The bilingual model also uses the [SMS Spam Multilingual Collection](https://huggingface.co/datasets/dbarbedillo/SMS_Spam_Multilingual_Collection_Dataset) and a small scenario supplement. See the [model card](docs/model-card.md) for provenance, split isolation, per-language evaluation, and limitations.

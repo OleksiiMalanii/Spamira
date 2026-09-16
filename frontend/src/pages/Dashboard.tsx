@@ -1,3 +1,4 @@
+import { t, useLocale } from '../lib/i18n';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -16,6 +17,8 @@ import { useAuth } from '../lib/auth';
 import { GuestOverview } from './GuestOverview';
 
 export function Dashboard() {
+  useLocale();
+
   const { user, loading, error, refresh } = useAuth();
   if (loading) return <Loading />;
   if (error) return <ErrorNotice message={error} retry={() => void refresh()} />;
@@ -23,18 +26,20 @@ export function Dashboard() {
 }
 
 function PersonalDashboard() {
+  useLocale();
+
   const { data, error, loading, refresh } = useResource('/dashboard/stats', dashboardSchema);
   return (
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">YOUR MESSAGE INTELLIGENCE, AT A GLANCE</div>
-          <h1>Less spam. More clarity.</h1>
-          <p>A clear view of your messages and what’s worth your attention.</p>
+          <div className="eyebrow">{t('YOUR MESSAGE INTELLIGENCE, AT A GLANCE')}</div>
+          <h1>{t('Less spam. More clarity.')}</h1>
+          <p>{t('A clear view of your messages and what’s worth your attention.')}</p>
         </div>
         <Link to="/analyzer" className="button primary">
           <ScanText size={17} />
-          Analyze message
+          {t('Analyze message')}
         </Link>
       </div>
       {loading ? (
@@ -47,30 +52,30 @@ function PersonalDashboard() {
             <div className="stats-grid">
               {[
                 {
-                  title: 'Messages analyzed',
+                  title: t('Messages analyzed'),
                   value: data.totalAnalyzed.toLocaleString(),
-                  note: 'Across your workspace',
+                  note: t('Across your workspace'),
                   icon: MessagesSquare,
                   tone: 'neutral',
                 },
                 {
-                  title: 'Spam detected',
+                  title: t('Spam detected'),
                   value: data.spamCount.toLocaleString(),
-                  note: 'Flagged for your attention',
+                  note: t('Flagged for your attention'),
                   icon: ShieldAlert,
                   tone: 'orange',
                 },
                 {
-                  title: 'Legitimate messages',
+                  title: t('Legitimate messages'),
                   value: data.legitimateCount.toLocaleString(),
-                  note: 'A little peace of mind',
+                  note: t('A little peace of mind'),
                   icon: ShieldCheck,
                   tone: 'green',
                 },
                 {
-                  title: 'Spam rate',
+                  title: t('Spam rate'),
                   value: `${data.spamPercentage.toFixed(1)}%`,
-                  note: 'Of all analyzed messages',
+                  note: t('Of all analyzed messages'),
                   icon: TrendingUp,
                   tone: 'neutral',
                 },
@@ -91,21 +96,24 @@ function PersonalDashboard() {
               <section className="hero-card">
                 <div className="hero-copy">
                   <span className="hero-kicker">
-                    <span /> BUILT TO SPOT THE SIGNAL
+                    <span />
+                    {t('BUILT TO SPOT THE SIGNAL')}
                   </span>
                   <h2>
-                    Suspicious message?
+                    {t('Suspicious message?')}
                     <br />
-                    Get a second opinion.
+                    {t('Get a second opinion.')}
                   </h2>
                   <p>
-                    Go beyond a gut feeling. Check any text for spam and see the confidence behind
-                    every result.
+                    {t(
+                      'Go beyond a gut feeling. Check any text for spam and see the confidence behind every result.',
+                    )}
                   </p>
                   <Link to="/analyzer" className="button ink">
-                    Open message analyzer <ArrowUpRight size={17} />
+                    {t('Open message analyzer')}
+                    <ArrowUpRight size={17} />
                   </Link>
-                  <small>No guesswork. Just a clearer picture.</small>
+                  <small>{t('No guesswork. Just a clearer picture.')}</small>
                 </div>
                 <div className="hero-art" aria-hidden="true">
                   <div className="orbit orbit-one" />
@@ -123,7 +131,8 @@ function PersonalDashboard() {
                     <ShieldCheck size={70} strokeWidth={1.35} />
                   </div>
                   <div className="art-pill">
-                    <ShieldCheck size={13} /> Signal found
+                    <ShieldCheck size={13} />
+                    {t('Signal found')}
                   </div>
                   <i className="spark spark-one">+</i>
                   <i className="spark spark-two">+</i>
@@ -131,8 +140,8 @@ function PersonalDashboard() {
               </section>
               <section className="card distribution">
                 <div className="section-heading">
-                  <h2>Message breakdown</h2>
-                  <span className="muted">All time</span>
+                  <h2>{t('Message breakdown')}</h2>
+                  <span className="muted">{t('All time')}</span>
                 </div>
                 <div
                   className="donut"
@@ -142,22 +151,25 @@ function PersonalDashboard() {
                       : '#e8ece8',
                   }}
                   role="img"
-                  aria-label={`${data.spamCount} spam and ${data.legitimateCount} legitimate messages`}
+                  aria-label={t('{spam} spam and {legitimate} legitimate messages', {
+                    spam: data.spamCount,
+                    legitimate: data.legitimateCount,
+                  })}
                 >
                   <div>
                     <strong>{data.totalAnalyzed.toLocaleString()}</strong>
-                    <span>Total messages</span>
+                    <span>{t('Total messages')}</span>
                   </div>
                 </div>
                 <div className="legend">
                   <span>
                     <i className="green-dot" />
-                    Legitimate
+                    {t('Legitimate')}
                   </span>
                   <strong>{data.legitimateCount.toLocaleString()}</strong>
                   <span>
                     <i className="orange-dot" />
-                    Spam
+                    {t('Spam')}
                   </span>
                   <strong>{data.spamCount.toLocaleString()}</strong>
                 </div>
@@ -166,11 +178,12 @@ function PersonalDashboard() {
             <section className="card recent-card">
               <div className="section-heading">
                 <div>
-                  <h2>Recent classifications</h2>
-                  <p>Your latest messages, with the noise sorted out.</p>
+                  <h2>{t('Recent classifications')}</h2>
+                  <p>{t('Your latest messages, with the noise sorted out.')}</p>
                 </div>
                 <Link to="/history" className="text-link">
-                  View history <ArrowRight size={15} />
+                  {t('View history')}
+                  <ArrowRight size={15} />
                 </Link>
               </div>
               {data.recentClassifications.length ? (
@@ -181,11 +194,12 @@ function PersonalDashboard() {
             </section>
             <div className="model-strip">
               <span className={`status-dot ${data.modelStatus}`} />
-              <strong>Model {data.modelStatus}</strong>
+              <strong>{t(data.modelStatus === 'online' ? 'Model online' : 'Model offline')}</strong>
               <span className="strip-divider" />
               <span>TF-IDF + Logistic Regression</span>
               <Link to="/metrics">
-                View performance <ArrowUpRight size={14} />
+                {t('View performance')}
+                <ArrowUpRight size={14} />
               </Link>
               <Clock3 size={15} className="strip-clock" />
             </div>
