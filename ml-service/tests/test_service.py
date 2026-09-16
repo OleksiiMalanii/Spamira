@@ -53,3 +53,21 @@ def test_missing_model_returns_unavailable(client):
 def test_missing_artifacts():
     with pytest.raises(FileNotFoundError):
         Classifier(Path("does-not-exist"))
+
+@pytest.mark.parametrize('text', ['你好世界', '1234567', '!!!'])
+def test_unsupported_input_never_returns_confident_ham(client, text):
+    response = client.post('/predict', json={'text': text})
+    assert response.status_code == 422
+
+
+def test_ukrainian_vocabulary_and_separate_metrics(client):
+    metrics = client.get('/metrics').json()
+    assert metrics['supportedLanguages'] == ['en', 'uk']
+    for language in ('en', 'uk'):
+        assert metrics['perLanguage'][language]['accuracy'] > .9
+        assert metrics['perLanguage'][language]['recall'] > .8
+    texts = ['Привіт, я вже їду додому. Зустрінемося ввечері.',
+             'Вітаємо! Ви виграли безкоштовний грошовий приз. Телефонуйте зараз, щоб отримати виграш!']
+    predictions = [client.post('/predict', json={'text': text}).json() for text in texts]
+    assert [p['label'] for p in predictions] == ['legitimate', 'spam']
+    assert predictions[0]['spam_probability'] != predictions[1]['spam_probability']

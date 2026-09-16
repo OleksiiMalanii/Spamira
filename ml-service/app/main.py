@@ -43,7 +43,10 @@ def health(request: Request):
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(payload: PredictRequest, request: Request):
-    return get_classifier(request).predict(payload.text)
+    try:
+        return get_classifier(request).predict(payload.text)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
 
 
 @app.get("/metrics")

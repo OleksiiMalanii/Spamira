@@ -19,6 +19,8 @@ public sealed class MlClient(HttpClient http) : IMlClient
         try
         {
             using var response = await http.PostAsJsonAsync("predict", new { text }, ct);
+            if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
+                throw new ArgumentException("Please enter meaningful English or Ukrainian text.");
             response.EnsureSuccessStatusCode();
             var prediction = await response.Content.ReadFromJsonAsync<Prediction>(ct)
                 ?? throw new JsonException("Missing prediction.");

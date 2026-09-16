@@ -3,6 +3,7 @@ WORKDIR /build/ml-service
 COPY ml-service/requirements.lock ./
 RUN pip install --no-cache-dir -r requirements.lock
 COPY ml-service/training/ training/
+COPY data/curated/ /build/data/curated/
 RUN python -m training.download_data && python -m training.train
 
 FROM python:3.14-slim

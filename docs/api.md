@@ -43,12 +43,12 @@ Members receive `201 Created` and a `Location` header. Guests receive `200 OK`, 
   "legitimateProbability": 0.96,
   "createdAt": "2026-09-10T10:00:00Z",
   "processingTimeMs": 12,
-  "modelVersion": "sms-tfidf-lr-1-7d039a24",
+  "modelVersion": "sms-en-uk-tfidf-lr-2-32e6893b",
   "savedToHistory": true
 }
 ```
 
-Probabilities above illustrate the contract. Messages must contain 1–5,000 characters and cannot be whitespace-only. Internal case and whitespace are preserved. Probability fields and confidence are fractions from 0 to 1. Processing time covers quota reservation and the ML call, excluding persistence. An abuse guard limits all clients, including members, to 60 analyses per minute per address.
+Probabilities above illustrate the contract. Messages must contain 1–5,000 characters and cannot be whitespace-only. Numeric-only, unsupported-script-only, or zero-feature text returns `400` without consuming guest allowance. Internal case and whitespace are preserved. Probability fields and confidence are fractions from 0 to 1. Processing time covers quota reservation and the ML call, excluding persistence. An abuse guard limits all clients, including members, to 60 analyses per minute per address.
 
 ## Private history and dashboard
 
@@ -72,7 +72,7 @@ Response: `{ "items": [], "page": 1, "pageSize": 10, "totalCount": 0, "totalPage
 
 ## Metrics and health
 
-`GET /api/model/metrics` is public and returns `accuracy`, `precision`, `recall`, `f1Score` (0–1), `confusionMatrix`, `labels`, `modelVersion`, `trainedAt`, sample counts, and training metadata. Matrix rows are actual classes, columns predicted classes; both use `["legitimate", "spam"]`. Spam is positive.
+`GET /api/model/metrics` is public and returns `accuracy`, `precision`, `recall`, `f1Score` (0–1), `confusionMatrix`, `labels`, `modelVersion`, `trainedAt`, sample counts, and training metadata including `supportedLanguages`, `perLanguage`, and `perSource` evaluation objects. Matrix rows are actual classes, columns predicted classes; both use `["legitimate", "spam"]`. Spam is positive.
 
 `GET /health` returns `{ "status": "healthy", "database": true, "model": true }`, or `503` with status `degraded` if a dependency fails.
 

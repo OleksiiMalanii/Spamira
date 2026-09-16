@@ -1,52 +1,37 @@
-# Spamira model card
+# Bilingual spam model
 
-## Purpose
+Spamira uses TF-IDF and Logistic Regression for English and Ukrainian text. Unsolicited advertising is spam, including promotional discounts, loyalty offers, and trials without an explicit fraudulent claim. Ordinary personal discussion of those subjects is legitimate. Sender identity and recipient consent cannot be established from text alone.
 
-Classify primarily English SMS messages as `spam` or `legitimate`. The model provides a second opinion; it does not verify senders, inspect destination websites, or guarantee that a message is safe.
+## Data and provenance
 
-## Data and preparation
+The base corpus is the [SMS Spam Multilingual Collection](https://huggingface.co/datasets/dbarbedillo/SMS_Spam_Multilingual_Collection_Dataset), revision `4b5332a8771b3f6388f8ecc51c2b8ade4be31c73`, downloaded with SHA-256 verification. Only English and Ukrainian columns are used. Its English source is the [UCI SMS Spam Collection](https://archive.ics.uci.edu/dataset/228/sms+spam+collection), contributed by Tiago Almeida and José Hidalgo (2011), DOI [10.24432/C5CC84](https://doi.org/10.24432/C5CC84). UCI lists CC BY 4.0; the multilingual publisher labels its derivative GPL. Raw corpora are downloaded separately and are not committed.
 
-Source: [UCI SMS Spam Collection](https://archive.ics.uci.edu/dataset/228/sms+spam+collection). The setup script downloads its public archive, reads only the expected dataset member, and verifies the dataset SHA-256:
+The Ukrainian column contains automatic translations and translation errors, rather than a representative collection of native Ukrainian messages. Reported scores must be interpreted with that limitation.
 
-```text
-7d039a24a6083ed9ef0f806ebad56bbb976e3aeb8de05669173bfdc4996c239d
-```
+A small [scenario supplement](../data/curated/README.md) adds 42 paired English/Ukrainian examples of contemporary promotions and personal/work messages. It is scenario data, not observed inbox traffic. Training weights these rows by 4. Customer history is not used for training or committed to the repository.
 
-Raw records: 5,574. After Unicode NFKC normalization, whitespace cleanup, lowercasing, removal of conflicting-label text, and deduplication: 5,159 unique messages. Removing duplicates before splitting prevents identical normalized messages from crossing the training/test boundary. The raw dataset is downloaded locally and excluded from Git.
+## Features and split
 
-## Training
+Unicode NFKC, case folding, and whitespace normalization preserve punctuation and numbers. A sklearn Pipeline combines word unigram/bigram TF-IDF with character-within-word 3–5-gram TF-IDF. Character fragments provide useful word-form coverage in Ukrainian. Logistic Regression returns both class probabilities using predict_proba; the larger probability determines the label and confidence.
 
-- Stratified 80/20 train/test split, `random_state=42`.
-- 4,127 training messages and 1,032 test messages.
-- `TfidfVectorizer`: word unigrams and bigrams, `min_df=2`, sublinear term frequency, shared preprocessing function. Default tokenization omits standalone punctuation and single-character tokens.
-- `LogisticRegression`: `class_weight="balanced"`, `C=4.0`, `max_iter=1000`, `random_state=42`.
-- Fit vocabulary and classifier on training data only. The holdout is used only for evaluation; no hyperparameter search uses it.
-- Save the complete pipeline with joblib and evaluation metadata to JSON. Restart the service after replacing artifacts.
+Exact duplicate messages connect their source pairs before splitting. Conflicting-label groups are removed. English and Ukrainian versions, duplicate text, and each scenario family remain together within five stratified group folds with random_state=42. Fold 0 is untouched test data; fold 1 selects C and class weights using F1 and precision. The selected pipeline is refit on the four development folds. Test data never selects parameters.
 
-## Measured performance
+Version identifiers hash corpus bytes, the scenario supplement, and training settings. Metrics include overall, per-language, and per-source results, as well as every validation candidate. Models are joblib artifacts from the repository's own training process only.
 
-Reference run with scikit-learn 1.8.0:
+## Reference evaluation
 
-| Metric | Value |
-| --- | ---: |
-| Accuracy | 98.55% |
-| Precision (spam) | 93.80% |
-| Recall (spam) | 94.53% |
-| F1-score (spam) | 94.16% |
+| Set | Accuracy | Precision | Recall | F1 | Test examples |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| English | 98.94% | 99.19% | 92.42% | 95.69% | 1,038 |
+| Ukrainian | 98.07% | 93.75% | 90.91% | 92.31% | 1,036 |
+| Overall | 98.51% | 96.41% | 91.67% | 93.98% | 2,074 |
 
-Rows are actual labels; columns are predicted labels:
+Reference version: `sms-en-uk-tfidf-lr-2-32e6893b`. Training: 8,299 rows. Test confusion matrix, rows actual and columns predicted, ordered legitimate/spam: `[[1801, 9], [22, 242]]`. Spam is positive. The public-only test F1 is 93.69%; the small scenario subset is reported separately in metrics.json. These are benchmark results, not a guarantee of accuracy on live traffic, and are not directly comparable to the earlier English-only split.
 
-| Actual / predicted | Legitimate | Spam |
-| --- | ---: | ---: |
-| Legitimate | 896 | 8 |
-| Spam | 7 | 121 |
+## Output and limitations
 
-The live metrics page uses the active artifact's JSON, not these reference values.
+Empty input is rejected. Numeric-only, unsupported-script-only, and zero-feature input is rejected rather than labeled legitimate from an intercept-only prediction. Other unfamiliar wording can still be misclassified. The UI highlights confidence below 80%; this is a review cue, not a calibrated statistical guarantee.
 
-## Probabilities and limitations
+Historic records retain the model version and probabilities from their original analysis. Use **Analyze again** in an expanded history row to obtain a new result with the current model; the original is preserved.
 
-`predict_proba` returns both class probabilities, which sum to one. Confidence is the larger probability. The classifier selects the larger-probability class, equivalent to a 0.5 spam threshold apart from ties. At exactly equal probabilities, the first class (`legitimate`) wins.
-
-These are uncalibrated model estimates. Class balancing changes the fitted decision boundary and can affect probability interpretation. Out-of-vocabulary inputs, empty token sequences, new spam campaigns, other languages, and non-SMS content can produce unreliable results. Evaluation is on a fixed historical corpus, not on present-day live traffic.
-
-The model version identifies the pipeline configuration revision and source-data hash. Changes to model configuration should increment the version prefix in the training script. Training time, dependency version, dataset checksum, split seed, and sample counts are recorded alongside every metrics artifact. Predictions retain their original model version after retraining.
+Retrain from `ml-service` with `python -m training.download_data` and `python -m training.train`. Docker builds perform both steps automatically. Metrics always come from the loaded model. Future improvements should prioritize labeled native Ukrainian messages collected with permission and evaluated independently of the training data.

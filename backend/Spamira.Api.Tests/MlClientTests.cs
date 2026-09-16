@@ -11,6 +11,13 @@ public class MlClientTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => Task.FromResult(respond());
     }
 
+    [Fact]
+    public async Task UnsupportedTextIsValidationRatherThanDependencyFailure()
+    {
+        using var http = new HttpClient(new Handler(() => new(HttpStatusCode.UnprocessableEntity))) { BaseAddress = new("http://localhost/") };
+        await Assert.ThrowsAsync<ArgumentException>(() => new MlClient(http).PredictAsync("12345", default));
+    }
+
     [Theory]
     [InlineData("{}")]
     [InlineData("not json")]

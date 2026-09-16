@@ -34,6 +34,11 @@ jobs:
           python -m training.download_data
           python -m training.train
           python -m pytest -q
+      - name: Save model evaluation
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-evaluation
+          path: ml-service/models/metrics.json
       - name: Start complete deployment
         env:
           POSTGRES_PASSWORD: ci-temporary-database-password
