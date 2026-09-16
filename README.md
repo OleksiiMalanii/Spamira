@@ -76,6 +76,8 @@ docker compose down
 
 `down` preserves accounts, history, and session encryption keys. `docker compose down -v` deletes these volumes and their contents.
 
+For access from a phone on the same trusted network, set `FRONTEND_BIND_ADDRESS=0.0.0.0` in `.env` and run `docker compose up -d --wait frontend`. Open `http://<computer-LAN-IP>:3000` on the device. Allow inbound TCP port 3000 from the local subnet in your firewall. Keep the computer running and both devices on the same network. This HTTP setup is for temporary local access; use HTTPS for public deployment. The API, database, and ML ports remain bound to loopback.
+
 ## Local development
 
 Prerequisites: Node.js 24+, Python 3.14, .NET SDK 10, and PostgreSQL 17. The repository pins the .NET major version, direct package versions, Python dependency lock, and npm lockfile. The frontend uses Rollup's WebAssembly build for portable bundling.

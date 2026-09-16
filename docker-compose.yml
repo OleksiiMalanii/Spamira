@@ -61,7 +61,7 @@ services:
       default:
         ipv4_address: ${FRONTEND_INTERNAL_IP:-172.30.250.10}
     ports:
-      - "127.0.0.1:${FRONTEND_PORT:-3000}:8080"
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-3000}:8080"
     depends_on:
       backend:
         condition: service_healthy
