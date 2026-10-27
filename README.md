@@ -21,7 +21,7 @@ Spamira turns a text message into a clear classification, a confidence score, an
 - **Responsive interface:** desktop sidebar, mobile navigation, accessible forms, loading, empty, and error states.
 - **Operational foundations:** PostgreSQL persistence, EF Core migrations, safe errors, health checks, tests, and Docker Compose.
 
-![Ukrainian interface and bilingual model evaluation](docs/screenshots/metrics-uk.png)
+![Model metrics with English and Ukrainian evaluation](docs/screenshots/metrics-desktop.png)
 
 ## Architecture
 
